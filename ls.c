@@ -23,6 +23,7 @@
 #define	BY_TIME	2
 
 #define BUFF_SIZE 512
+#define PERM_SIZE 12
 
 int f_recursive;
 int f_seeAll;
@@ -30,7 +31,7 @@ int f_seeHidden;
 int f_long;
 
 
-int
+void
 display(const FTSENT *file)
 {
 
@@ -38,12 +39,14 @@ display(const FTSENT *file)
     blkcnt_t maxblk;
     ino_t maxinode;
     nlink_t maxnlink;
+    int maxnuser, maxngroup;
     int maxuser, maxgroup;
     char *g;
+    struct stat *statp;
 
     FTSENT *p = file;
     while (p != NULL) {
-        struct stat *statp = p->fts_statp;
+        statp = p->fts_statp;
         if (statp->st_size > maxsize) maxsize = statp->st_size;
         if (statp->st_blocks > maxblk) maxblk = statp->st_blocks;
         if (statp->st_ino > maxinode) maxinode = statp->st_ino;
@@ -55,13 +58,7 @@ display(const FTSENT *file)
 
     p = file;
     while (p != NULL) {
-        if (f_inode == 1) {
-            sprintf();
-        }
-
-        if (f_long == 1) {
         
-        }
     }
 }
 
