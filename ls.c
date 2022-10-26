@@ -30,54 +30,32 @@ int f_seeAll;
 int f_seeHidden;
 int f_long;
 
+int fts_options;
 
 void
 display(const FTSENT *file)
 {
-
-    off_t maxsize;
-    blkcnt_t maxblk;
-    ino_t maxinode;
-    nlink_t maxnlink;
-    int maxnuser, maxngroup;
-    int maxuser, maxgroup;
-    char *g;
-    struct stat *statp;
-
-    FTSENT *p = file;
-    while (p != NULL) {
-        statp = p->fts_statp;
-        if (statp->st_size > maxsize) maxsize = statp->st_size;
-        if (statp->st_blocks > maxblk) maxblk = statp->st_blocks;
-        if (statp->st_ino > maxinode) maxinode = statp->st_ino;
-        if (statp->st_nlink > maxnlink) maxnlink = statp->st_nlink;
-        if (p->fts_namelen > maxuser) maxuser = p->fts_namelen;
-        g = group_from_gid(sp->st_gid, 0);
-        if (strlen(g) > maxgroup) maxgroup = strlen(g);
-    }
-
-    p = file;
-    while (p != NULL) {
         
-    }
 }
 
 int
 main(int argc, char **argv)
 {
     char *c, cwd[BUFF_SIZE];
-    if ((c = getpwd(cwd, BUFF_SIZE)) == NULL) {
+    if ((c = getcwd(cwd, BUFF_SIZE)) == NULL) {
         err(EXIT_FAILURE, "getpwd");
     }
     if (argc > 1) {
         (void) strlcat(cwd, argv[argc-1], BUFF_SIZE);
     }
 
+    argv[1] = c;
+
     FTS *ftsp;
 	FTSENT *p, *chp;
 	int ch_options, error;
 
-    if ((ftsp = fts_open(cwd, fts_options, cmp)) == NULL) {
+    if ((ftsp = fts_open(argv, fts_options, NULL)) == NULL) {
         err(EXIT_FAILURE, "fts_open");
     } 
     while ((p = fts_read(ftsp)) != NULL) {
