@@ -35,7 +35,7 @@ int f_seeHidden;
 int f_long;
 int f_inode;
 int f_type;
-int f_readable;
+int f_human;
 int f_kilo;
 int f_numeric;
 int f_noprint;

@@ -6,7 +6,7 @@ extern int f_seeHidden;
 extern int f_long;
 extern int f_inode;
 extern int f_type;
-extern int f_readable;
+extern int f_human;
 extern int f_kilo;
 extern int f_numeric;
 extern int f_noprint;
@@ -16,3 +16,16 @@ extern int f_block;
 extern int f_mtime;
 extern int f_atime;
 extern int f_raw;
+
+typedef struct {
+    unsigned int maxlen;
+	int s_block;
+	int s_flags;
+	int s_group;
+	int s_inode;
+	int s_nlink;
+	int s_size;
+	int s_user;
+	int s_major;
+	int s_minor;
+} PRINT_PARAMS;
