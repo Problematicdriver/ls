@@ -69,7 +69,11 @@ display(FTSENT *chp)
     char uid[ID_SIZE], gid[ID_SIZE];
     const char *owner, *group;
 
-    for (curr = chp; curr; curr = curr->fts_link) {
+    PRINT_PARAMS params; 
+    NAMES *np;
+
+    for (curr = chp; curr; curr = curr->fts_link) {  
+        
         if (curr->fts_info == FTS_ERR) {
             curr->fts_number = NO_PRINT;
             continue;
@@ -111,8 +115,26 @@ display(FTSENT *chp)
         if ((nglen = strlen(gid)) > max_gid) {
             max_gid = nglen;
         }
+
+        if ((np = malloc(sizeof(NAMES))) = NULL) {
+            err(EXIT_FAILURE, "malloc");
+        }
         
-    }    
+
+        
+    }
+    
+    params.maxlen = maxlen;
+    params.s_block = maxblock;
+    params.s_group = max_gname;
+    params.s_inode = maxinode;
+    params.s_nlink = maxnlink;
+    params.s_size = maxsize;
+    params.s_user = max_oname;
+    params.s_uid = max_uid;
+    params.s_gid = max_gid;
+
+        
 }
 
 int
@@ -148,4 +170,5 @@ main(int argc, char **argv)
             }
         }
     }
+    (void)fts_close(ftsp);
 }

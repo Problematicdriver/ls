@@ -20,12 +20,16 @@ extern int f_raw;
 typedef struct {
     unsigned int maxlen;
 	int s_block;
-	int s_flags;
 	int s_group;
 	int s_inode;
 	int s_nlink;
 	int s_size;
 	int s_user;
-	int s_major;
-	int s_minor;
+	int s_uid;
+	int s_gid;
 } PRINT_PARAMS;
+
+typedef struct {
+    char *user;
+    char *group;
+} NAMES;
