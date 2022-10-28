@@ -13,7 +13,7 @@ extern int f_noprint;
 extern int f_reverse;
 extern int f_size;
 extern int f_block;
-extern int f_mtime;
+extern int f_ctime;
 extern int f_atime;
 extern int f_raw;
 
@@ -32,4 +32,5 @@ typedef struct {
 typedef struct {
     char *user;
     char *group;
+    char data[1];
 } NAMES;

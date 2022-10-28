@@ -19,6 +19,8 @@
 
 #include "ls.h"
 
+static void	 display(FTSENT *);
+
 #define NO_PRINT 1
 
 #define	BY_NAME 0
@@ -42,20 +44,29 @@ int f_noprint;
 int f_reverse;
 int f_size;
 int f_block;
-int f_mtime;
+int f_ctime;
 int f_atime;
 int f_raw;
 
 int fts_options;
 
-void
+static void
+_display(FTSENT *chp) 
+{
+    FTSENT *curr;
+
+    for (curr = chp; curr; curr = curr->fts_link) {
+        printf("%s\n", curr->fts_name);
+    }
+}
+
+static void
 display(FTSENT *chp)
 {
     /*
      * find the maximum length for
-     * inode, nlinks, oname, gname, uid, gid 
+     * inode, nlinks, user name, group name, uid, gid 
      */
-    
     struct stat *sp;
 
     FTSENT *curr;
@@ -64,10 +75,10 @@ display(FTSENT *chp)
     blkcnt_t maxblock;
     ino_t maxinode;
     uint32_t maxnlink;
-    int maxlen, max_oname, max_gname, max_uid, max_gid;
-    int olen, glen, nolen, nglen;
+    int maxlen, max_uname, max_gname, max_uid, max_gid;
+    int ulen, glen, nulen, nglen;
     char uid[ID_SIZE], gid[ID_SIZE];
-    const char *owner, *group;
+    const char *user, *group;
 
     PRINT_PARAMS params; 
     NAMES *np;
@@ -94,10 +105,10 @@ display(FTSENT *chp)
         if (curr->fts_namelen > maxlen)
 			maxlen = curr->fts_namelen;
         
-        owner = user_from_uid(sp->st_uid, 0);
+        user = user_from_uid(sp->st_uid, 0);
 
-        if ((olen = strlen(owner)) > max_oname)
-			max_oname = olen;
+        if ((ulen = strlen(user)) > max_uname)
+			max_uname = ulen;
 
         group = group_from_gid(sp->st_gid, 0);
 
@@ -106,22 +117,20 @@ display(FTSENT *chp)
 
         (void)snprintf(uid, sizeof(uid),"%u", sp->st_uid);
         
-        if ((nolen = strlen(uid)) > max_uid) {
-            max_uid = nolen;
-        }
+        if ((nulen = strlen(uid)) > max_uid)
+            max_uid = nulen;
         
         (void)snprintf(gid, sizeof(gid),"%u", sp->st_gid);
-
-        if ((nglen = strlen(gid)) > max_gid) {
-            max_gid = nglen;
-        }
-
-        if ((np = malloc(sizeof(NAMES))) = NULL) {
-            err(EXIT_FAILURE, "malloc");
-        }
         
+        if ((np = malloc(sizeof(NAMES) + ulen + glen + 2)) == NULL)
+            err(EXIT_FAILURE, NULL);
 
-        
+        np->user = &np->data[0];
+        (void)strcpy(np->user, user);
+        np->group = &np->data[ulen + 1];
+        (void)strcpy(np->group, group);
+
+        curr->fts_pointer = np;    
     }
     
     params.maxlen = maxlen;
@@ -130,7 +139,7 @@ display(FTSENT *chp)
     params.s_inode = maxinode;
     params.s_nlink = maxnlink;
     params.s_size = maxsize;
-    params.s_user = max_oname;
+    params.s_user = max_uname;
     params.s_uid = max_uid;
     params.s_gid = max_gid;
 
@@ -164,11 +173,12 @@ main(int argc, char **argv)
                     !f_seeHidden) {
                 (void)fts_set(ftsp, p, FTS_SKIP);
             }
-
+            (void)printf("content of %s ...\n", p->fts_name);
             if ((chp = fts_children(ftsp, ch_options)) != NULL) {
-                display(chp);
+                _display(chp);
             }
         }
     }
     (void)fts_close(ftsp);
+    return EXIT_SUCCESS;
 }
