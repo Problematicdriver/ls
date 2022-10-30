@@ -1,6 +1,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/stat.h>
+#include <sys/param.h>
 
 #include <fcntl.h>
 #include <fts.h>
@@ -10,6 +11,7 @@
 #include <unistd.h>
 
 #include "ls.h"
+#include "print.h"
 
 #define BLOCKSIZE 512
 #define KILO 1024
@@ -47,31 +49,27 @@ printtime(time_t ftime)
 
 
 void
-print_long(FTSENT *chp, const PRINT_PARAMS *params)
+print_long(FTSENT *chp, PRINT_PARAMS *params)
 {
     now = time(NULL);
 
     FTSENT *curr;
     struct stat *sp;
-    NAMES *n;
+    NAMES *np;
     
     char *tz, *blksize, buff[20], szbuff[5];
-    int blocksize, size_in_kilo;
 
     if ((tz = getenv("TZ")) == NULL) {
-        err(EXIT_FAILURE, "getenv");        
-    }
-
-    if ((blksize = getenv("BLOCKSIZE")) == NULL) {
-        blocksize = atoi(blksize);     
-    } else {
-        blocksize = BLOCKSIZE;
-    }
+        // err(EXIT_FAILURE, "getenv");        
+    } 
     
 
     for (curr = chp; curr; curr = curr->fts_link) {
+        
+        if (curr->fts_number & NO_PRINT) continue;
+
         sp = curr->fts_statp;
-        n = curr->fts_pointer;
+        np = curr->fts_pointer;
 
         // prints inode
         if (f_inode) {
@@ -80,22 +78,19 @@ print_long(FTSENT *chp, const PRINT_PARAMS *params)
         
         // prints blk size in short listing
         if (f_size) {
-            
-            // in human readable, kilo or blk count
-            if (f_kilo) {
-                size_in_kilo = sp->st_blocks * blocksize / KILO;
-                (void)printf("%*d  ", params->s_block, size_in_kilo);
-            } else if (f_human) {
+            if (f_human) {
                 if (humanize_number(szbuff, sizeof(szbuff), sp->st_blocks * blocksize, "", 0, humanize_flags) == -1) {
                     err(EXIT_FAILURE, "humanize_number");
                 }
-                (void)printf("%*s ", params->s_block, szbuff);
+                (void)printf("%*s  ", params->s_block, szbuff);
             } else {
-                (void)printf("%*d  ", params->s_block, sp->st_blocks);
+                (void)printf("%*llu  ", params->s_block, 
+                        (unsigned long long)howmany(sp->st_blocks, blocksize));
             }
         }
         // prints file mode
         (void)strmode(sp->st_mode, buff);
+        (void)printf("%s  ", buff);
 
         // prints nlinks
         (void)printf("%*lu ", params->s_nlink, (unsigned long)sp->st_nlink);
@@ -105,7 +100,7 @@ print_long(FTSENT *chp, const PRINT_PARAMS *params)
         if (f_numeric) {
             
         } else {
-            (void)printf("%-*s  ", params->s_user, n->user);
+            (void)printf("%-*s  ", params->s_user, np->user);
         }
         
         // prints group    
@@ -113,7 +108,7 @@ print_long(FTSENT *chp, const PRINT_PARAMS *params)
         if (f_numeric) {
 
         } else {
-            (void)printf("%-*s  ", params->s_group, n->group);
+            (void)printf("%-*s  ", params->s_group, np->group);
         }
 
         // prints size
@@ -122,9 +117,9 @@ print_long(FTSENT *chp, const PRINT_PARAMS *params)
             if ((humanize_number(szbuff, sizeof(szbuff), sp->st_size, "", 0, humanize_flags)) == -1) {
                 err(EXIT_FAILURE, "humanize_number");
             }
-            (void)printf("%*s", params->s_size, szbuff);
+            (void)printf("%*s  ", params->s_size, szbuff);
         } else {
-            (void)printf("%*llu", params->s_size, sp->st_size);
+            (void)printf("%*llu  ", params->s_size, sp->st_size);
         } 
 
         // prints time
@@ -138,8 +133,7 @@ print_long(FTSENT *chp, const PRINT_PARAMS *params)
         }
 
         // prints path
-        (void)printf("%s", curr->fts_name); 
+        (void)printf("%s\n", curr->fts_name); 
     }
 }
-
 

@@ -1,5 +1,9 @@
+#ifndef LS_H
+#define LS_H
+
 #define NO_PRINT 1
 
+extern long blocksize;
 extern int f_recursive;
 extern int f_seeAll;
 extern int f_seeHidden;
@@ -25,8 +29,6 @@ typedef struct {
 	int s_nlink;
 	int s_size;
 	int s_user;
-	int s_uid;
-	int s_gid;
 } PRINT_PARAMS;
 
 typedef struct {
@@ -34,3 +36,5 @@ typedef struct {
     char *group;
     char data[1];
 } NAMES;
+
+#endif

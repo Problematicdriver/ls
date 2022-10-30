@@ -18,10 +18,9 @@
 #include <grp.h>
 
 #include "ls.h"
+#include "print.h"
 
 static void	 display(FTSENT *);
-
-#define NO_PRINT 1
 
 #define	BY_NAME 0
 #define	BY_SIZE 1
@@ -30,7 +29,9 @@ static void	 display(FTSENT *);
 #define BUFF_SIZE 512
 #define PERM_SIZE 12
 #define ID_SIZE 12
+#define BLKSIZE 512
 
+long blocksize;
 int f_recursive;
 int f_seeAll;
 int f_seeHidden;
@@ -49,6 +50,24 @@ int f_atime;
 int f_raw;
 
 int fts_options;
+
+/*
+ * for debug only
+ */
+static void
+_setFlags()
+{
+    f_long = 1;
+    f_size = 1;
+    f_kilo = 1;
+    blocksize = 1024;
+}
+
+static void
+setFlags(int argc, char **argv)
+{
+    
+}
 
 static void
 _display(FTSENT *chp) 
@@ -75,20 +94,30 @@ display(FTSENT *chp)
     blkcnt_t maxblock;
     ino_t maxinode;
     uint32_t maxnlink;
-    int maxlen, max_uname, max_gname, max_uid, max_gid;
+    int maxlen, maxuser, maxgroup;
     int ulen, glen, nulen, nglen;
-    char uid[ID_SIZE], gid[ID_SIZE];
+    char nbuff[12], gbuff[12], buff[21];
     const char *user, *group;
 
     PRINT_PARAMS params; 
     NAMES *np;
 
-    for (curr = chp; curr; curr = curr->fts_link) {  
-        
-        if (curr->fts_info == FTS_ERR) {
+    maxinode = maxnlink = 0;
+    maxlen = maxuser = maxgroup = 0;
+    maxblock = maxsize = 0;
+    
+    if (!f_kilo)
+        (void)getbsize(NULL, &blocksize);
+    blocksize /= BLKSIZE;
+
+    for (curr = chp; curr; curr = curr->fts_link) {          
+        if (curr->fts_info == FTS_ERR ||
+                (curr->fts_name[0] == '.' && !f_seeHidden)) {
             curr->fts_number = NO_PRINT;
             continue;
         }
+
+        sp = curr->fts_statp;
 
         if (sp->st_size > maxsize)
 			maxsize = sp->st_size;
@@ -104,24 +133,67 @@ display(FTSENT *chp)
 
         if (curr->fts_namelen > maxlen)
 			maxlen = curr->fts_namelen;
-        
-        user = user_from_uid(sp->st_uid, 0);
 
-        if ((ulen = strlen(user)) > max_uname)
-			max_uname = ulen;
-
-        group = group_from_gid(sp->st_gid, 0);
-
-        if ((glen = strlen(group)) > max_gname)
-            max_gname = glen;
-
-        (void)snprintf(uid, sizeof(uid),"%u", sp->st_uid);
         
-        if ((nulen = strlen(uid)) > max_uid)
-            max_uid = nulen;
+
+        // params.maxlen
+        params.maxlen = maxlen;
+
+        // params.s_inode
+        (void)snprintf(buff, sizeof(buff), "%llu", (unsigned long long)maxinode);
+        params.s_inode = strlen(buff);
+
+        // params.s_size and s_block
+        if (f_human) {
+			params.s_size = 4; /* min buf length for humanize_number */
+		} else {
+			(void)snprintf(buff, sizeof(buff), "%lld",
+			    (long long)maxsize);
+			params.s_size = strlen(buff);
+        }
+
+        if (f_human) {
+			params.s_block = 4; /* min buf length for humanize_number */
+		} else {
+			(void)snprintf(buff, sizeof(buff), "%lld",
+			    (long long)howmany(maxblock, blocksize));
+			params.s_block = strlen(buff);
+        }
+
+        // params.s_user
+        if (f_numeric || 
+                (user = user_from_uid(sp->st_uid, 0)) == NULL) {
+            (void)snprintf(nbuff, sizeof(nbuff), "%u", sp->st_uid);
+            user = nbuff;
+        }
+        if ((ulen = strlen(user)) > maxuser)
+            maxuser = ulen;
         
-        (void)snprintf(gid, sizeof(gid),"%u", sp->st_gid);
+        params.s_user = maxuser;
+
+        // params.s_group
+        if (f_numeric ||
+            (group = group_from_gid(sp->st_gid, 0)) == NULL) {
+            (void)snprintf(gbuff, sizeof(gbuff), "%u", sp->st_gid);
+            group = gbuff;
+        }
+        if ((glen = strlen(group)) > maxgroup)
+            maxgroup = glen;
         
+        params.s_group = maxgroup;
+        
+        // params.s_size
+        if (f_human) {
+            params.s_size = 4;
+        } else {
+            (void)snprintf(buff, sizeof(buff), "%lld", (long long)maxsize);
+            params.s_size = strlen(buff);
+        }
+
+        // params.s_nlink
+        (void)snprintf(buff, sizeof(buff), "%u", maxnlink);
+        params.s_nlink = strlen(buff);
+
         if ((np = malloc(sizeof(NAMES) + ulen + glen + 2)) == NULL)
             err(EXIT_FAILURE, NULL);
 
@@ -132,17 +204,8 @@ display(FTSENT *chp)
 
         curr->fts_pointer = np;    
     }
-    
-    params.maxlen = maxlen;
-    params.s_block = maxblock;
-    params.s_group = max_gname;
-    params.s_inode = maxinode;
-    params.s_nlink = maxnlink;
-    params.s_size = maxsize;
-    params.s_user = max_uname;
-    params.s_uid = max_uid;
-    params.s_gid = max_gid;
 
+    print_long(chp, &params);
         
 }
 
@@ -158,6 +221,8 @@ main(int argc, char **argv)
     }
 
     argv[1] = c;
+    
+    _setFlags();
 
     FTS *ftsp;
 	FTSENT *p, *chp;
@@ -172,11 +237,17 @@ main(int argc, char **argv)
                     p->fts_name[0] == '.' &&
                     !f_seeHidden) {
                 (void)fts_set(ftsp, p, FTS_SKIP);
+                break;
             }
+
             (void)printf("content of %s ...\n", p->fts_name);
             if ((chp = fts_children(ftsp, ch_options)) != NULL) {
-                _display(chp);
+                display(chp);
             }
+            
+            if (!f_recursive && chp != NULL)
+                (void)fts_set(ftsp, p, FTS_SKIP);
+            break;
         }
     }
     (void)fts_close(ftsp);
