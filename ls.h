@@ -23,7 +23,8 @@ extern int f_raw;
 
 typedef struct {
     unsigned int maxlen;
-	int s_block;
+	u_int64_t btotal;
+    int s_block;
 	int s_group;
 	int s_inode;
 	int s_nlink;
