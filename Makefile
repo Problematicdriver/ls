@@ -4,4 +4,4 @@ ls : $(objects)
 	cc -Wall -Werror -Wextra -o ls $(objects)
 
 clean:
-	rm ls.o
+	rm ls
