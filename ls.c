@@ -36,6 +36,11 @@ static void	 display(FTSENT *);
 #define ID_SIZE 12
 #define BLKSIZE 512
 
+/*
+ * These global are set to be extern and 
+ * used by printing functions
+ */
+
 long blocksize;
 int f_recursive;
 int f_seeAll;
@@ -60,7 +65,7 @@ int sortKey = BY_NAME;
 int fts_options;
 
 /*
- * for debug only
+ * for debuging use only
  */
 static void
 _setFlags()
@@ -190,15 +195,17 @@ static void
 display(FTSENT *chp)
 {
     /*
-     * find the maximum length for
-     * inode, nlinks, user name, group name, uid, gid 
+     * traverse linked list to determine buffer sizes
+     * and names 
      */
+
     struct stat *sp;
 
     FTSENT *curr;
 
     off_t maxsize;
     blkcnt_t maxblock;
+    u_int64_t btotal;
     ino_t maxinode;
     uint32_t maxnlink;
     int maxlen, maxuser, maxgroup;
@@ -206,16 +213,16 @@ display(FTSENT *chp)
     char nbuff[12], gbuff[12], buff[21];
     const char *user, *group;
 
-    PRINT_PARAMS params; 
-    NAMES *np;
+    PRINT_PARAMS params;    // buffer sizes are saved here 
+    NAMES *np;              // names are saved here
 
     maxinode = maxnlink = 0;
     maxlen = maxuser = maxgroup = 0;
-    maxblock = maxsize = 0;
+    maxblock = btotal = maxsize = 0;
     
     if (!f_kilo)
-        (void)getbsize(NULL, &blocksize);
-    blocksize /= BLKSIZE;
+        (void)getbsize(NULL, &blocksize);   // sys default is 512 byte
+    blocksize /= BLKSIZE;                   // find blksize relative to default size
 
     for (curr = chp; curr; curr = curr->fts_link) {          
         if (curr->fts_info == FTS_ERR ||
@@ -225,6 +232,8 @@ display(FTSENT *chp)
         }
 
         sp = curr->fts_statp;
+        btotal += sp->st_blocks;
+        params.btotal = btotal;
 
         if (sp->st_size > maxsize)
 			maxsize = sp->st_size;
@@ -243,16 +252,13 @@ display(FTSENT *chp)
 
         
 
-        // params.maxlen
         params.maxlen = maxlen;
 
-        // params.s_inode
         (void)snprintf(buff, sizeof(buff), "%llu", (unsigned long long)maxinode);
         params.s_inode = strlen(buff);
 
-        // params.s_size and s_block
         if (f_human) {
-			params.s_size = 4; /* min buf length for humanize_number */
+			params.s_size = 4;
 		} else {
 			(void)snprintf(buff, sizeof(buff), "%lld",
 			    (long long)maxsize);
@@ -260,14 +266,13 @@ display(FTSENT *chp)
         }
 
         if (f_human) {
-			params.s_block = 4; /* min buf length for humanize_number */
+			params.s_block = 4;
 		} else {
 			(void)snprintf(buff, sizeof(buff), "%lld",
 			    (long long)howmany(maxblock, blocksize));
 			params.s_block = strlen(buff);
         }
 
-        // params.s_user
         if (f_numeric || 
                 (user = user_from_uid(sp->st_uid, 0)) == NULL) {
             (void)snprintf(nbuff, sizeof(nbuff), "%u", sp->st_uid);
@@ -278,7 +283,6 @@ display(FTSENT *chp)
         
         params.s_user = maxuser;
 
-        // params.s_group
         if (f_numeric ||
             (group = group_from_gid(sp->st_gid, 0)) == NULL) {
             (void)snprintf(gbuff, sizeof(gbuff), "%u", sp->st_gid);
@@ -289,7 +293,6 @@ display(FTSENT *chp)
         
         params.s_group = maxgroup;
         
-        // params.s_size
         if (f_human) {
             params.s_size = 4;
         } else {
@@ -297,7 +300,6 @@ display(FTSENT *chp)
             params.s_size = strlen(buff);
         }
 
-        // params.s_nlink
         (void)snprintf(buff, sizeof(buff), "%u", maxnlink);
         params.s_nlink = strlen(buff);
 
@@ -346,12 +348,16 @@ main(int argc, char **argv)
                 (void)fts_set(ftsp, p, FTS_SKIP);
                 break;
             }
+            
+            if (p->fts_level != FTS_ROOTLEVEL)
+                (void)printf("%s:\n", p->fts_path);
 
-            (void)printf("content of %s ...\n", p->fts_name);
             if ((chp = fts_children(ftsp, ch_options)) != NULL) {
                 display(chp);
+            } else {
+                (void)putchar('\n');
             }
-            
+                        
             if (!f_recursive && chp != NULL)
                 (void)fts_set(ftsp, p, FTS_SKIP);
         }

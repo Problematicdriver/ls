@@ -17,10 +17,32 @@
 #define KILO 1024
 #define DAYSPERNYEAR 365
 #define SECSPERDAY 86400
-
+#define MAX_PATHLEN 64
 
 static int humanize_flags = HN_DECIMAL | HN_B | HN_NOSPACE; 
 static time_t now;
+
+void
+printlink(FTSENT *p)
+{
+    int l;
+    char name[MAX_PATHLEN + 1], path[MAX_PATHLEN + 1];  // room for '\0'
+    if (p->fts_level == FTS_ROOTLEVEL)
+		(void)snprintf(name, sizeof(name), "%s", p->fts_name);
+    else
+        (void)snprintf(name, sizeof(name), "%s/%s", p->fts_parent->fts_accpath, p->fts_name);
+    
+    if ((l = readlink(name, path, sizeof(path))) == -1) {
+        err(EXIT_FAILURE, "readlink");    
+    }
+    path[l] = '\0';
+    (void)printf(" -> %s\n", path);
+}
+
+/*
+ * printtime is referenced from
+ * https://github.com/NetBSD/src/blob/trunk/bin/ls/print.c
+ */
 
 void
 printtime(time_t ftime)
@@ -57,12 +79,11 @@ printfcn(FTSENT *chp, PRINT_PARAMS *params)
     struct stat *sp;
     NAMES *np;
     
-    char *tz, *blksize, buff[20], szbuff[5];
+    char buff[20], szbuff[5];
 
-    if ((tz = getenv("TZ")) == NULL) {
-        // err(EXIT_FAILURE, "getenv");        
-    } 
-    
+    if (f_long || f_size) {
+        (void)printf("total  %llu\n", (unsigned long long)howmany(params->btotal, blocksize));
+    }
 
     for (curr = chp; curr; curr = curr->fts_link) {
         
@@ -70,13 +91,11 @@ printfcn(FTSENT *chp, PRINT_PARAMS *params)
 
         sp = curr->fts_statp;
         np = curr->fts_pointer;
-
-        // prints inode
+        
         if (f_inode) {
             (void)printf("%*s  ", params->s_inode, sp->st_ino); 
         }
         
-        // prints blk size in short listing
         if (f_size) {
             if (f_human) {
                 if (humanize_number(szbuff, sizeof(szbuff), sp->st_blocks * blocksize, "", 0, humanize_flags) == -1) {
@@ -88,27 +107,21 @@ printfcn(FTSENT *chp, PRINT_PARAMS *params)
                         (unsigned long long)howmany(sp->st_blocks, blocksize));
             }
         }
-        // prints file mode
-        
+
         if (f_long || f_numeric) {
             (void)strmode(sp->st_mode, buff);
             (void)printf("%s  ", buff);
         }
 
-        // prints nlinks
         if (f_long || f_numeric)
             (void)printf("%*lu ", params->s_nlink, (unsigned long)sp->st_nlink);
          
-        // prints owner
         if (f_long || f_numeric)
             (void)printf("%-*s  ", params->s_user, np->user);
     
-        // prints group
         if (f_long || f_numeric)    
             (void)printf("%-*s  ", params->s_group, np->group);
 
-        // prints size
-        // in human readable or bytes
         if (f_long || f_numeric) {
             if (f_human) {
                 if ((humanize_number(szbuff, sizeof(szbuff), sp->st_size, "", 0, humanize_flags)) == -1) {
@@ -120,8 +133,6 @@ printfcn(FTSENT *chp, PRINT_PARAMS *params)
             }
         }
 
-        // prints time
-        // show atime or ctime, or mtime by default
         if (f_long || f_numeric) {
             if (f_atime) {
                 printtime(sp->st_atime);
@@ -132,9 +143,9 @@ printfcn(FTSENT *chp, PRINT_PARAMS *params)
             }
         }
 
-        // prints filename
         (void)printf("%s", curr->fts_name);
-        if (f_type) {
+        
+        if (f_long && f_type) {
             switch(sp->st_mode & S_IFMT) {
             case S_IFDIR:
                 (void)printf("/");
@@ -157,7 +168,14 @@ printfcn(FTSENT *chp, PRINT_PARAMS *params)
                 }
             }
         }
+
+        if (f_long && S_ISLNK(sp->st_mode)) {
+            printlink(curr);
+        }
+
         (void)putchar('\n');
+        
     }
+    (void)putchar('\n');
 }
 
