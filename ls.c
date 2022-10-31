@@ -18,13 +18,18 @@
 #include <grp.h>
 
 #include "ls.h"
+#include "cmp.h"
 #include "print.h"
 
+
 static void	 display(FTSENT *);
+
+#define FLAGS "AacdFfhiklnqRrSstuw"
 
 #define	BY_NAME 0
 #define	BY_SIZE 1
 #define	BY_TIME	2
+#define NO_SORT 3
 
 #define BUFF_SIZE 512
 #define PERM_SIZE 12
@@ -42,12 +47,15 @@ int f_human;
 int f_kilo;
 int f_numeric;
 int f_noprint;
+int f_listdir;
 int f_reverse;
 int f_size;
 int f_block;
 int f_ctime;
 int f_atime;
 int f_raw;
+
+int sortKey = BY_NAME;
 
 int fts_options;
 
@@ -57,16 +65,115 @@ int fts_options;
 static void
 _setFlags()
 {
+    f_recursive = 1;
+    f_type = 1;
+    f_human = 1;
     f_long = 1;
     f_size = 1;
     f_kilo = 1;
     blocksize = 1024;
+    f_reverse = 1;
+    sortKey = BY_TIME;
 }
 
 static void
 setFlags(int argc, char **argv)
 {
-    
+    fts_options = FTS_PHYSICAL;
+    int ch;
+    while ((ch = getopt(argc, argv, FLAGS)) != -1) {
+        switch(ch) {
+        case 'A':
+            f_seeHidden = 1;
+            break;
+        case 'a':
+            fts_options |= FTS_SEEDOT;
+        case 'c':
+            f_ctime = 1;
+			f_atime = 0;
+			break;
+        case 'd':
+            f_listdir = 1;
+			f_recursive = 0;
+			break;
+        case 'F':
+            f_type = 1;
+			break;
+        case 'f':
+            sortKey = NO_SORT;
+        case 'h':
+            f_human = 1;
+            f_kilo = 0;
+            break;
+        case 'i':
+            f_inode = 1;
+            break;
+        case 'k':
+            blocksize = 1024;
+			f_kilo = 1;
+			f_human = 0;
+			break;
+        case 'l':
+            f_long = 1;
+            break;
+        case 'n':
+            f_numeric = 1;
+			f_long = 1;
+            break;
+        case 'q':
+            f_noprint = 1;
+            break;
+        case 'R':
+            f_recursive = 1;
+			break;
+        case 'r':
+            f_reverse = 1;
+            break;
+        case 'S':
+            sortKey = BY_SIZE;
+            break;
+        case 's':
+            f_size = 1;
+            break;
+        case 't':
+            sortKey = BY_TIME;
+            break;
+        case 'u':
+            f_atime = 1;
+			f_ctime = 0;
+			break;
+        case 'w':
+            f_noprint = 0;
+        }
+    }    
+}
+
+int
+cmp(const FTSENT **a, const FTSENT **b)
+{
+    int mult;
+    int (*sortfcn)(const FTSENT *, const FTSENT *);
+    mult = f_reverse ? -1 : 1;
+    switch (sortKey) {
+    case BY_NAME:
+        sortfcn = byName;
+        break;
+    case BY_SIZE:
+        sortfcn = bySize;
+        break;
+    case BY_TIME:
+        if (f_atime) {
+            sortfcn = byATime;
+        } else if (f_ctime) {
+            sortfcn = byCTime;
+        } else {
+            sortfcn = byMTime;
+        }
+        break;
+    default:
+        sortfcn = noSort;
+    }
+    return mult * (sortfcn(*a, *b));
 }
 
 static void
@@ -205,7 +312,7 @@ display(FTSENT *chp)
         curr->fts_pointer = np;    
     }
 
-    print_long(chp, &params);
+    printfcn(chp, &params);
         
 }
 
@@ -220,15 +327,15 @@ main(int argc, char **argv)
         (void) strlcat(cwd, argv[argc-1], BUFF_SIZE);
     }
 
-    argv[1] = c;
+    argv[argc-1] = c;
     
-    _setFlags();
+    setFlags(argc, argv);
 
     FTS *ftsp;
 	FTSENT *p, *chp;
 	int ch_options, error;
     
-    if ((ftsp = fts_open(argv, fts_options, NULL)) == NULL) {
+    if ((ftsp = fts_open(argv, fts_options, cmp)) == NULL) {
         err(EXIT_FAILURE, "fts_open");
     } 
     while ((p = fts_read(ftsp)) != NULL) {
@@ -247,7 +354,6 @@ main(int argc, char **argv)
             
             if (!f_recursive && chp != NULL)
                 (void)fts_set(ftsp, p, FTS_SKIP);
-            break;
         }
     }
     (void)fts_close(ftsp);

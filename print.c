@@ -49,7 +49,7 @@ printtime(time_t ftime)
 
 
 void
-print_long(FTSENT *chp, PRINT_PARAMS *params)
+printfcn(FTSENT *chp, PRINT_PARAMS *params)
 {
     now = time(NULL);
 
@@ -89,51 +89,75 @@ print_long(FTSENT *chp, PRINT_PARAMS *params)
             }
         }
         // prints file mode
-        (void)strmode(sp->st_mode, buff);
-        (void)printf("%s  ", buff);
+        
+        if (f_long || f_numeric) {
+            (void)strmode(sp->st_mode, buff);
+            (void)printf("%s  ", buff);
+        }
 
         // prints nlinks
-        (void)printf("%*lu ", params->s_nlink, (unsigned long)sp->st_nlink);
+        if (f_long || f_numeric)
+            (void)printf("%*lu ", params->s_nlink, (unsigned long)sp->st_nlink);
          
         // prints owner
-        // numerical
-        if (f_numeric) {
-            
-        } else {
+        if (f_long || f_numeric)
             (void)printf("%-*s  ", params->s_user, np->user);
-        }
-        
-        // prints group    
-        // numerical
-        if (f_numeric) {
-
-        } else {
+    
+        // prints group
+        if (f_long || f_numeric)    
             (void)printf("%-*s  ", params->s_group, np->group);
-        }
 
         // prints size
         // in human readable or bytes
-        if (f_human) {
-            if ((humanize_number(szbuff, sizeof(szbuff), sp->st_size, "", 0, humanize_flags)) == -1) {
-                err(EXIT_FAILURE, "humanize_number");
+        if (f_long || f_numeric) {
+            if (f_human) {
+                if ((humanize_number(szbuff, sizeof(szbuff), sp->st_size, "", 0, humanize_flags)) == -1) {
+                    err(EXIT_FAILURE, "humanize_number");
+                }
+                (void)printf("%*s  ", params->s_size, szbuff);
+            } else {
+                (void)printf("%*llu  ", params->s_size, sp->st_size);
             }
-            (void)printf("%*s  ", params->s_size, szbuff);
-        } else {
-            (void)printf("%*llu  ", params->s_size, sp->st_size);
-        } 
+        }
 
         // prints time
         // show atime or ctime, or mtime by default
-        if (f_atime) {
-            printtime(sp->st_atime);
-        } else if (f_ctime) {
-            printtime(sp->st_ctime);
-        } else {
-            printtime(sp->st_mtime);
+        if (f_long || f_numeric) {
+            if (f_atime) {
+                printtime(sp->st_atime);
+            } else if (f_ctime) {
+                printtime(sp->st_ctime);
+            } else {
+                printtime(sp->st_mtime);
+            }
         }
 
-        // prints path
-        (void)printf("%s\n", curr->fts_name); 
+        // prints filename
+        (void)printf("%s", curr->fts_name);
+        if (f_type) {
+            switch(sp->st_mode & S_IFMT) {
+            case S_IFDIR:
+                (void)printf("/");
+                break;
+            case S_IFIFO:
+                (void)printf("|");
+                break;
+            case S_IFLNK:
+                (void)printf("@");
+                break;
+            case S_IFSOCK:
+                (void)printf("=");
+                break;
+            case S_IFWHT:
+                (void)printf("%");
+                break;
+            default:
+                if (sp->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+                    (void)printf("*");
+                }
+            }
+        }
+        (void)putchar('\n');
     }
 }
 
