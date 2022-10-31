@@ -65,22 +65,8 @@ int sortKey = BY_NAME;
 int fts_options;
 
 /*
- * for debuging use only
+ * sets flags given opts specified by user
  */
-static void
-_setFlags()
-{
-    f_recursive = 1;
-    f_type = 1;
-    f_human = 1;
-    f_long = 1;
-    f_size = 1;
-    f_kilo = 1;
-    blocksize = 1024;
-    f_reverse = 1;
-    sortKey = BY_TIME;
-}
-
 static void
 setFlags(int argc, char **argv)
 {
@@ -93,6 +79,7 @@ setFlags(int argc, char **argv)
             break;
         case 'a':
             fts_options |= FTS_SEEDOT;
+            break;
         case 'c':
             f_ctime = 1;
 			f_atime = 0;
@@ -106,6 +93,7 @@ setFlags(int argc, char **argv)
 			break;
         case 'f':
             sortKey = NO_SORT;
+            break;
         case 'h':
             f_human = 1;
             f_kilo = 0;
@@ -149,10 +137,25 @@ setFlags(int argc, char **argv)
 			break;
         case 'w':
             f_noprint = 0;
+            break;
         }
-    }    
+    }
+
+    /* output to terminal */
+    if (isatty(STDOUT_FILENO)) {
+        f_noprint = 1;
+    }
+
+    /* root sees all file */
+    if (getuid() == 0) {
+        f_seeHidden = 1;
+    }
 }
 
+/*
+ * cmp function choose the right compare function
+ * from cmp.c given the flags
+ */
 int
 cmp(const FTSENT **a, const FTSENT **b)
 {
@@ -181,24 +184,13 @@ cmp(const FTSENT **a, const FTSENT **b)
     return mult * (sortfcn(*a, *b));
 }
 
-static void
-_display(FTSENT *chp) 
-{
-    FTSENT *curr;
-
-    for (curr = chp; curr; curr = curr->fts_link) {
-        printf("%s\n", curr->fts_name);
-    }
-}
-
+/*
+ * display() takes a linked list of FTSENT and collect
+ * information nessary to print listings, then print them
+ */
 static void
 display(FTSENT *chp)
 {
-    /*
-     * traverse linked list to determine buffer sizes
-     * and names 
-     */
-
     struct stat *sp;
 
     FTSENT *curr;
@@ -208,8 +200,8 @@ display(FTSENT *chp)
     u_int64_t btotal;
     ino_t maxinode;
     uint32_t maxnlink;
-    int maxlen, maxuser, maxgroup;
-    int ulen, glen, nulen, nglen;
+    uint32_t maxlen, maxuser, maxgroup;
+    uint32_t ulen, glen;
     char nbuff[12], gbuff[12], buff[21];
     const char *user, *group;
 
@@ -319,24 +311,27 @@ display(FTSENT *chp)
 }
 
 int
-main(int argc, char **argv)
+main(int argc, char *argv[])
 {
-    char *c, cwd[BUFF_SIZE];
-    if ((c = getcwd(cwd, BUFF_SIZE)) == NULL) {
-        err(EXIT_FAILURE, "getpwd");
-    }
-    if (argc > 1) {
-        (void) strlcat(cwd, argv[argc-1], BUFF_SIZE);
-    }
-
-    argv[argc-1] = c;
-    
+     
     setFlags(argc, argv);
+    argc -= optind;
+    argv += optind;
 
     FTS *ftsp;
 	FTSENT *p, *chp;
-	int ch_options, error;
+	int ch_options;
+
+    (void)printf("%s\n", argv[argc-1]);
     
+    ch_options = 0;
+
+    if (!argc) {
+        argc = 1;
+        char dot[] = ".", *dotav[] = { dot, NULL };
+        argv = dotav;
+    }
+
     if ((ftsp = fts_open(argv, fts_options, cmp)) == NULL) {
         err(EXIT_FAILURE, "fts_open");
     } 
@@ -357,10 +352,11 @@ main(int argc, char **argv)
             } else {
                 (void)putchar('\n');
             }
-                        
+
+            /* skip if not recursive */                
             if (!f_recursive && chp != NULL)
                 (void)fts_set(ftsp, p, FTS_SKIP);
-        }
+         }
     }
     (void)fts_close(ftsp);
     return EXIT_SUCCESS;

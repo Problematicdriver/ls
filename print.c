@@ -93,7 +93,7 @@ printfcn(FTSENT *chp, PRINT_PARAMS *params)
         np = curr->fts_pointer;
         
         if (f_inode) {
-            (void)printf("%*s  ", params->s_inode, sp->st_ino); 
+            (void)printf("%*ld  ", params->s_inode, sp->st_ino); 
         }
         
         if (f_size) {
@@ -129,7 +129,7 @@ printfcn(FTSENT *chp, PRINT_PARAMS *params)
                 }
                 (void)printf("%*s  ", params->s_size, szbuff);
             } else {
-                (void)printf("%*llu  ", params->s_size, sp->st_size);
+                (void)printf("%*lu  ", params->s_size, sp->st_size);
             }
         }
 
@@ -160,7 +160,7 @@ printfcn(FTSENT *chp, PRINT_PARAMS *params)
                 (void)printf("=");
                 break;
             case S_IFWHT:
-                (void)printf("%");
+                (void)printf("%%");
                 break;
             default:
                 if (sp->st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {

@@ -48,6 +48,8 @@ byCTime(const FTSENT *a, const FTSENT *b)
 }
 
 int
-noSort(const FTSENT *a, const FTSENT *b) {
+noSort(const FTSENT *b, const FTSENT *a) {
+    (void)a;
+    (void)b;
     return (0);
 }
