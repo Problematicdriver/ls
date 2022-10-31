@@ -322,8 +322,6 @@ main(int argc, char *argv[])
 	FTSENT *p, *chp;
 	int ch_options;
 
-    (void)printf("%s\n", argv[argc-1]);
-    
     ch_options = 0;
 
     if (!argc) {
