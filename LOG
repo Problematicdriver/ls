@@ -1,0 +1,83 @@
+commit e7dd8b1f77ec7e678c87a0f40a5677a9a5870dbe
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Mon Oct 31 17:58:28 2022 +0000
+
+    README added
+
+commit 80bbd3ac8aba0b1113713fa324f9652da5569107
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Mon Oct 31 17:55:02 2022 +0000
+
+    cleaned files
+
+commit 3758de58011ad3e1e10f5e78ce159728b5b127bd
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Mon Oct 31 17:41:13 2022 +0000
+
+    fixed bug in handling user input
+
+commit 1e354cbe6b1628b97b48a2d7a663bdf8aba3a98b
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Mon Oct 31 15:59:06 2022 +0000
+
+    header updated for printlink
+
+commit 0751bb2e20279331fad59850d1773b53de567ff1
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Mon Oct 31 15:57:43 2022 +0000
+
+    printing for symlink done
+
+commit 82439ee6df4743f29e43c17501415877e844c9d5
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Mon Oct 31 06:31:32 2022 +0000
+
+    flags working now, needs to run tests
+
+commit 5517955469641028696767984674f68d6f366c6b
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Sun Oct 30 18:16:38 2022 +0000
+
+    print almost done, flgs and cmps needs work
+
+commit 01ff59e6e8b8ba6cd39d7ff4bfd1b9e6ab802838
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Fri Oct 28 19:54:13 2022 +0000
+
+    done printing
+
+commit 89ed11653d14817b26553ce465a367577446aa44
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Thu Oct 27 18:06:46 2022 +0000
+
+    print and ls under construction
+
+commit fabfab800b8a08470c5a5add11e19e49f0d68cb5
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Wed Oct 26 16:17:07 2022 +0000
+
+    print logic
+
+commit c5570829b9ff4d6c0a731ea0d7ea84efe6387ab9
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Wed Oct 26 04:19:53 2022 +0000
+
+    get maxes
+
+commit fa569bc07980f3446eb77a33081329b2cc6f4478
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Wed Oct 26 02:49:01 2022 +0000
+
+    bug free ls.c
+
+commit bb301f4521f58e8bd0a06d5a10c58d7e68de66d1
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Mon Oct 24 09:54:51 2022 +0000
+
+    saved
+
+commit 009f173c359fbb6910e3981991f20a7947188380
+Author: Problematicdriver <jiayiguo@ip-172-31-85-108.ec2.internal>
+Date:   Mon Oct 24 08:58:32 2022 +0000
+
+    first
